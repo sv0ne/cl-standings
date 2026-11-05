@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const seasons = new Set([2024, 2025, 2026]);
 
 const enableMocks = 0;
-const configuredFile = 'champions-league-data.json';
+const configuredFile = 'champions-league-data-3.json';
 
 async function getMockData() {
   const filePath = path.join(process.cwd(), 'app', 'api', 'standings', configuredFile);
