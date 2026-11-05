@@ -7,6 +7,30 @@ html[data-theme='light']{--bg:#f3f5f9;--surface:#fff;--surface-2:#f8f9fc;--surfa
 @media(max-width:620px){.site-shell{padding:0 15px}.topbar{height:65px}.brand{font-size:10px}.brand-mark{font-size:25px}.season-nav{position:static;transform:none;margin-left:auto;margin-right:12px}.season{padding:8px 7px;font-size:9px}.live-note{display:none}.header-actions{gap:0}.hero{min-height:235px;margin:20px 0 36px;padding:28px 24px;align-items:flex-start;flex-direction:column;justify-content:center;gap:23px}.hero h1{font-size:39px}.hero p{max-width:280px;font-size:12px}.hero-stat{border-left:0;border-top:1px solid #60709255;padding:10px 0 0;display:flex;align-items:center;gap:12px}.hero-stat strong{font-size:25px;margin:0}.hero-stat>div{font-size:9px}.hero-stat>span{display:none}.hero-orb{font-size:125px;right:6%;top:26px}.section-heading{align-items:flex-start;gap:15px;flex-direction:column}.section-heading h2{font-size:21px}.mode-tabs{width:100%}.mode{flex:1}.legend{gap:10px;flex-wrap:wrap;font-size:9px}.table-wrap{max-height:68vh;border-radius:8px}.standings{min-width:1100px}.standings th,.standings td{height:44px}.standings .team-head{width:147px;min-width:147px;padding:0 8px}.standings img{width:17px;height:17px;margin:0 5px}.team-name{max-width:84px;font-size:11px}.round-head{min-width:78px}.legend-bottom{margin-bottom:0}.guide{margin:42px 0 30px;padding:22px 19px}.guide h2{font-size:18px}.guide>p{font-size:12px}.guide-cards{grid-template-columns:1fr;gap:8px}.guide-cards article{grid-template-columns:75px 1fr;align-items:center}.guide-number{grid-column:1;grid-row:1/3}.guide-cards b{grid-column:2}.guide-cards small{grid-column:2}footer{padding:17px 0;flex-wrap:wrap;gap:7px 12px}.footer-brand{width:43%}.footer-note{order:3;width:100%}.coffee{font-size:10px;padding:7px 9px}.error-box{grid-template-columns:1fr}.error-box button{grid-row:auto;grid-column:1;justify-self:start;padding:8px 12px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
 
+.hero{display:none}
+.league-tabs{display:flex;gap:8px;align-items:center;padding:20px 0 0;border-bottom:1px solid var(--border)}
+.league-tab{padding:11px 16px;color:var(--muted);font-weight:600;border-bottom:2px solid transparent}
+.league-tab.active{color:var(--text);border-color:var(--gold)}
+.league-tab.disabled{cursor:default;opacity:.55}
+.league-tab small{margin-left:6px;font-size:9px;text-transform:uppercase;letter-spacing:.08em}
+.section-tabs{display:flex;justify-content:space-between;align-items:center;gap:20px;min-height:62px;border-bottom:1px solid var(--border)}
+.section-links{display:flex;align-items:center;gap:6px}
+.section-tab{padding:9px 13px;color:var(--muted);border-radius:6px;font-size:12px}
+.section-tab:hover,.section-tab.active{color:var(--text);background:var(--surface-3)}
+.season-picker{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:11px;white-space:nowrap}
+.season-picker select{padding:8px 28px 8px 10px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:6px}
+.content{padding-top:30px}
+.section-heading{margin-bottom:22px}
+.section-heading h1{font:700 28px/1.2 Manrope,sans-serif;letter-spacing:-.5px;margin:5px 0}
+.section-description{color:var(--muted);margin:7px 0 0;max-width:700px}
+.news-empty{padding:30px;background:var(--surface);border:1px solid var(--border);border-radius:9px;color:var(--muted)}
+.news-empty h2{color:var(--text);margin-top:0}
+.match-list{display:grid;gap:8px}
+.match-row{display:grid;grid-template-columns:170px minmax(140px,1fr) 80px minmax(140px,1fr) 100px;align-items:center;gap:15px;padding:15px 18px;background:var(--surface);border:1px solid var(--border);border-radius:8px}
+.match-row time,.match-row small{color:var(--muted);font-size:11px}
+.match-row b{text-align:center;font-family:'DM Mono',monospace}
+@media(max-width:700px){.site-shell{padding:0 15px}.topbar{height:65px}.league-tabs{padding-top:12px}.league-tab{padding:10px 12px}.section-tabs{align-items:flex-start;flex-direction:column;padding:10px 0}.section-links{width:100%;overflow:auto}.section-tab{white-space:nowrap;padding:8px 10px}.season-picker{align-self:flex-end}.section-heading h1{font-size:23px}.match-row{grid-template-columns:1fr auto;gap:5px 12px}.match-row time{grid-column:1/-1}.match-row b{grid-column:1;grid-row:3}.match-row small{grid-column:2;grid-row:3;text-align:right}}
+
 /* Keep the standings cells close to the original table's compact, flat grid. */
 .standings{border-collapse:collapse;border-spacing:0;font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;font-size:14px;user-select:none}
 .standings th,.standings td{height:auto;min-height:0;padding:6px 8px;border-bottom:0;border-right:1px solid #443e3e;color:#fff;font:14px/1.35 "Segoe UI",Tahoma,Geneva,Verdana,sans-serif}
