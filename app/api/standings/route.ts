@@ -2,10 +2,9 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { unstable_cache } from 'next/cache';
 import { NextRequest, NextResponse } from 'next/server';
+import {seasons} from "@/app/site-config";
 
-const seasons = new Set([2024, 2025, 2026]);
-
-const enableMocks = 1;
+const enableMocks = 0;
 const configuredFile = 'champions-league-data-3.json';
 
 const getCachedFootballData = unstable_cache(
@@ -41,7 +40,7 @@ async function getMockData() {
 
 export async function GET(request: NextRequest) {
   const season = Number(request.nextUrl.searchParams.get('season') ?? new Date().getFullYear());
-  if (!seasons.has(season)) return NextResponse.json({ error: 'Unavailable season' }, { status: 400 });
+  if (!(seasons as readonly number[]).includes(season)) return NextResponse.json({ error: 'Unavailable season' }, { status: 400 });
 
   if (enableMocks) {
     try {

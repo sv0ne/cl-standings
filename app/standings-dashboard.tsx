@@ -1,53 +1,30 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { getTeamDisplayName } from './team-names';
+import { currentSeason, seasons, getTeamDisplayName } from './site-config';
+import { useStandings, type Match } from './standings-store';
 
-type Team = { id: number; name: string; shortName: string; tla?: string; crest: string };
-type Standing = { position: number; team: Team; playedGames: number; won: number; draw: number; lost: number; goalDifference: number; points: number };
-type Match = { id: number; utcDate: string; status: string; stage: string; matchday: number | null; homeTeam: Team; awayTeam: Team; score: { fullTime: { home: number | null; away: number | null } } };
-type Payload = { standings: { standings: { table: Standing[] }[] }; matches: { matches: Match[] } };
 type Section = 'news' | 'table' | 'results' | 'calendar';
 type Props = { section: Section; sections: Record<Section, { label: string; title: string; description: string }> };
 
-const currentSeason = new Date().getFullYear();
-const seasons = [currentSeason, currentSeason - 1, currentSeason - 2];
-
 export default function StandingsDashboard({ section, sections }: Props) {
   const [season, setSeason] = useState(currentSeason);
-  const [payload, setPayload] = useState<Payload | null>(null);
-  const [error, setError] = useState('');
+  const [seasonReady, setSeasonReady] = useState(false);
+  const { data: payload, error, loading, refreshing, refresh } = useStandings(season, seasonReady);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [tableMode, setTableMode] = useState<'league' | 'playoffs'>('league');
-  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => { document.documentElement.dataset.theme = theme; }, [theme]);
   useEffect(() => {
     const requestedSeason = Number(new URLSearchParams(window.location.search).get('season'));
-    if (seasons.includes(requestedSeason)) setSeason(requestedSeason);
+    if (seasons.includes(requestedSeason as typeof seasons[number])) setSeason(requestedSeason as typeof currentSeason);
+    setSeasonReady(true);
   }, []);
+
   useEffect(() => {
-    const controller = new AbortController();
-    setError('');
-    fetch(`/api/standings?season=${season}`, { signal: controller.signal })
-      .then(async response => {
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error ?? 'Не удалось загрузить данные.');
-
-        const timeString = new Date().toLocaleTimeString('ru-RU', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        });
-
-        console.log("Данные получены у API в ", timeString);
-
-        console.log(data);
-        setPayload(data);
-      })
-      .catch(reason => { if (reason.name !== 'AbortError') setError(reason.message); });
-    return () => controller.abort();
-  }, [season, reloadKey]);
+    console.log("Данные", payload);
+  }, [payload]);
 
   const rows = payload?.standings.standings?.[0]?.table ?? [];
   const matches = payload?.matches.matches ?? [];
@@ -62,7 +39,7 @@ export default function StandingsDashboard({ section, sections }: Props) {
 
   const selectSeason = (value: string) => {
     const year = Number(value);
-    setSeason(year);
+    setSeason(year as typeof currentSeason);
     window.history.replaceState(null, '', `${window.location.pathname}?season=${year}`);
   };
   const seasonQuery = `?season=${season}`;
@@ -79,14 +56,15 @@ export default function StandingsDashboard({ section, sections }: Props) {
     </nav>
 
     <nav className="section-tabs" aria-label="Разделы Лиги чемпионов">
-      <div className="section-links">{Object.entries(sections).filter(([slug]) => slug !== 'calendar' || season >= currentSeason).map(([slug, item]) => <a key={slug} className={section === slug ? 'section-tab active' : 'section-tab'} href={`/champions-league/${slug}${seasonQuery}`} aria-current={section === slug ? 'page' : undefined}>{item.label}</a>)}</div>
+      <div className="section-links">{Object.entries(sections).filter(([slug]) => slug !== 'calendar' || season === currentSeason).map(([slug, item]) => <Link key={slug} className={section === slug ? 'section-tab active' : 'section-tab'} href={`/champions-league/${slug}${seasonQuery}`} aria-current={section === slug ? 'page' : undefined}>{item.label}</Link>)}</div>
       <label className="season-picker"><span>Сезон</span><span className="season-select-wrap"><select value={season} onChange={event => selectSeason(event.target.value)}>{seasons.map(year => <option key={year} value={year}>{year}/{String(year + 1).slice(-2)}</option>)}</select><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4" /></svg></span></label>
     </nav>
 
     <section className="content">
       <div className="section-heading"><div><div className="eyebrow muted">ЛИГА ЧЕМПИОНОВ · СЕЗОН {season}/{season + 1}</div><h1>{sections[section].title}</h1><p className="section-description">{sections[section].description}</p></div></div>
       {section === 'news' && <div className="news-empty"><h2>Новости скоро появятся</h2><p>Здесь будут публиковаться новости и материалы о Лиге чемпионов.</p></div>}
-      {error && <div className="error-box"><strong>Не удалось загрузить данные</strong><span>{error}</span><button onClick={() => setReloadKey(key => key + 1)}>Повторить</button></div>}
+      <div className="data-status-row"><span>Актуальность данных: {payload?.dataUpdatedAt ? new Date(payload.dataUpdatedAt).toLocaleString('ru-RU') : loading ? 'загрузка…' : 'нет данных'}</span><button type="button" onClick={() => void refresh()} disabled={refreshing || loading}>{refreshing ? 'Обновляем…' : 'Обновить'}</button></div>
+      {error && <div className="error-box"><strong>Не удалось загрузить данные</strong><span>{error}</span><button onClick={() => void refresh()}>Повторить</button></div>}
       {section === 'table' && <>
         <div className="legend"><span><i className="legend-direct" /> 1–8 · 1/8 финала</span><span><i className="legend-playoff" /> 9–24 · стыковые</span><span><i className="legend-out" /> 25–36 · выбывание</span></div>
         <div className="table-switch" role="tablist" aria-label="Этап турнира"><button role="tab" aria-selected={tableMode === 'league'} className={tableMode === 'league' ? 'active' : ''} onClick={() => setTableMode('league')}>Этап лиги</button><button role="tab" aria-selected={tableMode === 'playoffs'} className={tableMode === 'playoffs' ? 'active' : ''} onClick={() => setTableMode('playoffs')}>Плей-офф</button></div>

@@ -22,3 +22,6 @@ export function getTeamDisplayName(team: { name?: string | null; shortName?: str
   }
   return names.find(Boolean) ?? '';
 }
+
+export const seasons = [2024, 2025, 2026] as const;
+export const currentSeason = seasons[seasons.length - 1];
