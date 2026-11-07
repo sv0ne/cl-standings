@@ -33,6 +33,15 @@ export default function StandingsDashboard({ section, sections }: Props) {
       .then(async response => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error ?? 'Не удалось загрузить данные.');
+
+        const timeString = new Date().toLocaleTimeString('ru-RU', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+
+        console.log("Данные получены у API в ", timeString);
+
         console.log(data);
         setPayload(data);
       })
@@ -102,6 +111,8 @@ function ScrollableStandings({ children }: { children: ReactNode }) {
     if (!element) return;
     const updateEdges = () => {
       const maxScroll = element.scrollWidth - element.clientWidth;
+      const stickyColumn = element.querySelector<HTMLElement>('.standings .team-head');
+      if (stickyColumn) element.parentElement?.style.setProperty('--sticky-column-width', `${stickyColumn.getBoundingClientRect().width}px`);
       setEdges({ start: element.scrollLeft > 1, end: maxScroll - element.scrollLeft > 1 });
     };
     updateEdges();

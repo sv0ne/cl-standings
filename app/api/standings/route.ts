@@ -35,8 +35,8 @@ export async function GET(request: NextRequest) {
     const headers = { 'X-Auth-Token': token };
     const base = 'https://api.football-data.org/v4/competitions/CL';
     const [standingRes, matchesRes] = await Promise.all([
-      fetch(`${base}/standings?season=${season}`, { headers, next: { revalidate: 60 } }),
-      fetch(`${base}/matches?season=${season}`, { headers, next: { revalidate: 60 } }),
+      fetchWithLog(`${base}/standings?season=${season}`, { headers, next: { revalidate: 60 } }),
+      fetchWithLog(`${base}/matches?season=${season}`, { headers, next: { revalidate: 60 } }),
     ]);
 
     if (!standingRes.ok || !matchesRes.ok) {
@@ -44,9 +44,29 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: `Football-data API: ${upstream.status} ${upstream.statusText}` }, { status: upstream.status });
     }
 
+    const timeString = new Date().toLocaleTimeString('ru-RU', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+  });
+
+    console.log("Данные запрошены у API в ", timeString);
+
     const [standings, matches] = await Promise.all([standingRes.json(), matchesRes.json()]);
-    return NextResponse.json({ standings, matches }, { headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' } });
+    return NextResponse.json({ standings, matches, timeString }, { headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' } });
   } catch {
     return NextResponse.json({ error: 'Не удалось загрузить данные турнира. Попробуйте обновить страницу.' }, { status: 502 });
   }
+}
+
+async function fetchWithLog(url: string, options: RequestInit) {
+  const timeString = new Date().toLocaleTimeString('ru-RU', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+  });
+
+  console.log(`========================> [API Request 🚀] Отправлен запрос: ${timeString}`);
+
+  return await fetch(url, options);
 }

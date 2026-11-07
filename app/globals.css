@@ -109,11 +109,12 @@ html[data-theme='light'] .match-clock{color:#30394a}
 html[data-theme='light'] .teamRival__homeIcon{background:#303746}
 @media(max-width:700px){.match-row{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px}.match-row .match-time{grid-column:1/-1;grid-row:1;justify-content:center}.match-row .home-team{grid-column:1;grid-row:2}.match-row .match-score{grid-column:2;grid-row:2}.match-row .away-team{grid-column:3;grid-row:2}.match-row-spacer{display:none}}
 
-.table-scroll-frame{position:relative;min-width:0}
-.table-scroll-frame::after{position:absolute;z-index:5;top:1px;right:1px;border-top-right-radius:8px;border-bottom-right-radius:8px;bottom:1px;width:28px;background:linear-gradient(90deg,transparent,#dfbf7626);content:'';opacity:0;pointer-events:none;transition:opacity .2s}
+.table-scroll-frame{position:relative;min-width:0;isolation:isolate}
+.table-scroll-frame::before,.table-scroll-frame::after{position:absolute;z-index:8;top:1px;bottom:1px;content:'';pointer-events:none;opacity:0;transition:opacity .2s}
+.table-scroll-frame::before{left:var(--sticky-column-width,190px);width:18px;background:linear-gradient(90deg,#0000008f,transparent)}
+.table-scroll-frame[data-scrolled='true']::before{opacity:1}
+.table-scroll-frame::after{right:1px;border-top-right-radius:10px;border-bottom-right-radius:10px;width:28px;background:linear-gradient(90deg,transparent,#0000008f)}
 .table-scroll-frame[data-not-at-end='true']::after{opacity:1}
-.table-scroll-frame[data-scrolled='true'] .standings .team-head{box-shadow:8px 0 12px -8px #dfbf76a6}
-.standings .team-head{transition:box-shadow .2s}
 
 .teamRival{padding: 0;}
 .teamRival__body{display:grid;grid-template-rows:auto auto;align-content:center;justify-content:stretch;gap:4px;min-height:48px}
