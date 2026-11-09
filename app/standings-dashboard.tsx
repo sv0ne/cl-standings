@@ -2,25 +2,20 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { currentSeason, seasons, getTeamDisplayName } from './site-config';
+import {seasons, getTeamDisplayName, currentSeason} from './site-config';
 import { useStandings, type Match } from './standings-store';
+import {useRouter} from "next/navigation";
 
 type Section = 'news' | 'table' | 'results' | 'calendar';
-type Props = { section: Section; sections: Record<Section, { label: string; title: string; description: string }> };
+type Props = { section: Section; sections: Record<Section, { label: string; title: string; description: string }>; selectedSeason: number; league: string };
 
-export default function StandingsDashboard({ section, sections }: Props) {
-  const [season, setSeason] = useState(currentSeason);
-  const [seasonReady, setSeasonReady] = useState(false);
-  const { data: payload, error, loading, refreshing, refresh } = useStandings(season, seasonReady);
+export default function StandingsDashboard({ section, sections, selectedSeason, league }: Props) {
+  const router = useRouter();
+  const { data: payload, error, loading, refreshing, refresh } = useStandings(selectedSeason, true);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [tableMode, setTableMode] = useState<'league' | 'playoffs'>('league');
 
   useEffect(() => { document.documentElement.dataset.theme = theme; }, [theme]);
-  useEffect(() => {
-    const requestedSeason = Number(new URLSearchParams(window.location.search).get('season'));
-    if (seasons.includes(requestedSeason as typeof seasons[number])) setSeason(requestedSeason as typeof currentSeason);
-    setSeasonReady(true);
-  }, []);
 
   useEffect(() => {
     console.log("Данные", payload);
@@ -38,44 +33,53 @@ export default function StandingsDashboard({ section, sections }: Props) {
   }, [leagueMatches]);
 
   const selectSeason = (value: string) => {
-    const year = Number(value);
-    setSeason(year as typeof currentSeason);
-    window.history.replaceState(null, '', `${window.location.pathname}?season=${year}`);
+    router.push(`/${league}/table?season=${value}`);
   };
-  const seasonQuery = `?season=${season}`;
+
+  const seasonQuery = `?season=${selectedSeason}`;
 
   return <main className="site-shell">
     <header className="topbar">
-      <a className="brand" href="/champions-league/table"><span className="brand-mark">✦</span><span>EUROPEAN <b>FOOTBALL</b><small>LEAGUES & NEWS</small></span></a>
+      <a className="brand" href={`${league}/table`}><span className="brand-mark">✦</span><span>EUROPEAN <b>FOOTBALL</b><small>LEAGUES & NEWS</small></span></a>
       <div className="header-actions"><span className="live-note"><i /> LIVE DATA</span><button className="icon-button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label="Переключить тему">{theme === 'dark' ? '☼' : '☾'}</button></div>
     </header>
 
     <nav className="league-tabs" aria-label="Лиги">
-      <a className="league-tab active" href="/champions-league/table">Лига чемпионов</a>
+      <a className="league-tab active" href={`${league}/table`}>Лига чемпионов</a>
       <span className="league-tab disabled" aria-disabled="true">Ла Лига <small>Скоро</small></span>
     </nav>
 
     <nav className="section-tabs" aria-label="Разделы Лиги чемпионов">
-      <div className="section-links">{Object.entries(sections).filter(([slug]) => slug !== 'calendar' || season === currentSeason).map(([slug, item]) => <Link key={slug} className={section === slug ? 'section-tab active' : 'section-tab'} href={`/champions-league/${slug}${seasonQuery}`} aria-current={section === slug ? 'page' : undefined}>{item.label}</Link>)}</div>
-      <label className="season-picker"><span>Сезон</span><span className="season-select-wrap"><select value={season} onChange={event => selectSeason(event.target.value)}>{seasons.map(year => <option key={year} value={year}>{year}/{String(year + 1).slice(-2)}</option>)}</select><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4" /></svg></span></label>
+      <div className="section-links">{Object.entries(sections).filter(([slug]) => slug !== 'calendar' || selectedSeason === currentSeason).map(([slug, item]) => <Link key={slug} className={section === slug ? 'section-tab active' : 'section-tab'} href={`/${league}/${slug}${seasonQuery}`} aria-current={section === slug ? 'page' : undefined}>{item.label}</Link>)}</div>
+      <label className="season-picker"><span>Сезон</span><span className="season-select-wrap"><select value={selectedSeason} onChange={event => selectSeason(event.target.value)}>{seasons.toReversed().map(year => <option key={year} value={year}>{year}/{String(year + 1).slice(-2)}</option>)}</select><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4" /></svg></span></label>
     </nav>
 
     <section className="content">
-      <div className="section-heading"><div><div className="eyebrow muted">ЛИГА ЧЕМПИОНОВ · СЕЗОН {season}/{season + 1}</div><h1>{sections[section].title}</h1><p className="section-description">{sections[section].description}</p></div></div>
+      <div className="section-heading">
+        <div>
+          <div className="eyebrow muted">ЛИГА ЧЕМПИОНОВ · СЕЗОН {selectedSeason}/{selectedSeason + 1}</div>
+          <h1>{sections[section].title}</h1>
+          <p className="section-description">{sections[section].description}</p>
+          <div className="data-status-row">
+            <span>Актуальность данных: {payload?.dataUpdatedAt ? new Date(payload.dataUpdatedAt).toLocaleString('ru-RU') : loading ? 'загрузка…' : 'нет данных'}</span>
+            <button type="button" onClick={() => void refresh()}
+                    disabled={refreshing || loading}>{refreshing ? 'Обновляем…' : 'Обновить'}</button>
+          </div>
+        </div>
+      </div>
       {section === 'news' && <div className="news-empty"><h2>Новости скоро появятся</h2><p>Здесь будут публиковаться новости и материалы о Лиге чемпионов.</p></div>}
-      <div className="data-status-row"><span>Актуальность данных: {payload?.dataUpdatedAt ? new Date(payload.dataUpdatedAt).toLocaleString('ru-RU') : loading ? 'загрузка…' : 'нет данных'}</span><button type="button" onClick={() => void refresh()} disabled={refreshing || loading}>{refreshing ? 'Обновляем…' : 'Обновить'}</button></div>
       {error && <div className="error-box"><strong>Не удалось загрузить данные</strong><span>{error}</span><button onClick={() => void refresh()}>Повторить</button></div>}
       {section === 'table' && <>
         <div className="legend"><span><i className="legend-direct" /> 1–8 · 1/8 финала</span><span><i className="legend-playoff" /> 9–24 · стыковые</span><span><i className="legend-out" /> 25–36 · выбывание</span></div>
         <div className="table-switch" role="tablist" aria-label="Этап турнира"><button role="tab" aria-selected={tableMode === 'league'} className={tableMode === 'league' ? 'active' : ''} onClick={() => setTableMode('league')}>Этап лиги</button><button role="tab" aria-selected={tableMode === 'playoffs'} className={tableMode === 'playoffs' ? 'active' : ''} onClick={() => setTableMode('playoffs')}>Плей-офф</button></div>
-        {tableMode === 'league' ? <ScrollableStandings><table className="standings"><thead><tr><th className="team-head">КЛУБ</th><th title="Сыграно">И</th><th title="Победы">В</th><th title="Ничьи">Н</th><th title="Поражения">П</th><th title="Разница мячей">РМ</th><th className="points-head" title="Очки">О</th>{Array.from({ length: 8 }, (_, i) => <th className="round-head" key={i}>ТУР <b>{i + 1}</b></th>)}</tr></thead><tbody>{rows.map((row, index) => <tr key={row.team.id}><th className="team-head"><span className={`rank rank-${index < 8 ? 'direct' : index < 24 ? 'playoff' : 'out'}`}>{row.position}</span><img src={row.team.crest} alt="" /><span className="team-name">{getTeamDisplayName(row.team, true)}</span></th><td>{row.playedGames}</td><td className="positive">{row.won}</td><td>{row.draw}</td><td className="negative">{row.lost}</td><td>{row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}</td><td className="points">{row.points}</td>{Array.from({ length: 8 }, (_, round) => <MatchCell key={formByTeam.get(row.team.id)?.[round]?.id ?? round} match={formByTeam.get(row.team.id)?.[round]} teamId={row.team.id} />)}</tr>)}</tbody></table>{!rows.length && !error && <div className="empty-state">Загружаем турнирную таблицу…</div>}</ScrollableStandings> : <MatchList matches={matches.filter(match => match.stage !== 'LEAGUE_STAGE')} empty="Матчи плей-офф появятся здесь." />}
+        {tableMode === 'league' ? <ScrollableStandings><table className="standings"><thead><tr><th className="team-head">КЛУБ</th><th title="Сыграно">И</th><th title="Победы">В</th><th title="Ничьи">Н</th><th title="Поражения">П</th><th title="Разница мячей">РМ</th><th className="points-head" title="Очки">О</th>{Array.from({ length: 8 }, (_, i) => <th className="round-head" key={i}>ТУР <b>{i + 1}</b></th>)}</tr></thead><tbody>{rows.map((row, index) => <tr key={row.team.id}><th className="team-head"><span className={`rank rank-${index < 8 ? 'direct' : index < 24 ? 'playoff' : 'out'}`}>{row.position}</span><img src={row.team.crest} alt="" /><span className="team-name">{getTeamDisplayName(row.team, true)}</span></th><td>{row.playedGames}</td><td className="positive">{row.won}</td><td>{row.draw}</td><td className="negative">{row.lost}</td><td>{row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}</td><td className="points">{row.points}</td>{Array.from({ length: 8 }, (_, round) => <MatchCell key={formByTeam.get(row.team.id)?.[round]?.id ?? round} match={formByTeam.get(row.team.id)?.[round]} teamId={row.team.id} />)}</tr>)}</tbody></table>{!rows.length && !error && <div className="empty-state">Загружаем турнирную таблицу…</div>}</ScrollableStandings> : <PlayoffsGrid matches={matches.filter(match => match.stage !== 'LEAGUE_STAGE')} />}
         {tableMode === 'league' && <section className="format-guide"><div className="eyebrow muted">КАК УСТРОЕН НОВЫЙ ФОРМАТ</div><p>В общем этапе каждый клуб проводит восемь матчей с разными соперниками. Восемь лучших команд сразу выходят в 1/8 финала. Клубы с 9-го по 24-е место играют стыковые матчи за право продолжить путь, остальные завершают выступление.</p></section>}
       </>}
-      {section === 'results' && <MatchGroups matches={leagueMatches.filter(match => match.status === 'FINISHED')} order="recent" empty="Завершённые матчи появятся здесь." />}
+      {section === 'results' && <MatchGroups matches={matches.filter(match => match.status === 'FINISHED')} order="recent" empty="Завершённые матчи появятся здесь." />}
       {section === 'calendar' && <MatchGroups matches={matches.filter(match => match.status !== 'FINISHED')} order="upcoming" empty="Предстоящих матчей пока нет." />}
     </section>
 
-    <footer><a className="brand footer-brand" href="/champions-league/table"><span className="brand-mark">✦</span><span>EUROPEAN <b>FOOTBALL</b><small>LEAGUES & NEWS</small></span></a><span className="footer-note">Данные: Football-data.org · обновление примерно раз в минуту</span></footer>
+    <footer><a className="brand footer-brand" href={`${league}/table`}><span className="brand-mark">✦</span><span>EUROPEAN <b>FOOTBALL</b><small>LEAGUES & NEWS</small></span></a><span className="footer-note">Данные: Football-data.org · обновление примерно раз в минуту</span></footer>
   </main>;
 }
 
@@ -154,9 +158,12 @@ function MatchTime({ value }: { value: string }) {
   </time>;
 }
 
-function MatchList({ matches, empty }: { matches: Match[]; empty: string }) {
-  if (!matches.length) return <div className="news-empty"><p>{empty}</p></div>;
-  return <div className="match-list">{matches.map(match => <article className="match-row" key={match.id}><MatchTime value={match.utcDate} /><span className="match-team home-team"><span>{getTeamDisplayName(match.homeTeam)}</span><img src={match.homeTeam.crest} alt={`Эмблема ${getTeamDisplayName(match.homeTeam)}`} /></span><b className="match-score">{match.score.fullTime.home ?? '–'} : {match.score.fullTime.away ?? '–'}</b><span className="match-team away-team"><img src={match.awayTeam.crest} alt={`Эмблема ${getTeamDisplayName(match.awayTeam)}`} /><span>{getTeamDisplayName(match.awayTeam)}</span></span><span className="match-row-spacer" aria-hidden="true" /></article>)}</div>;
+function PlayoffsGrid({ matches }: { matches: Match[] }) {
+  if (!matches.length) return <div className="news-empty"><p>Матчи плей-офф появятся здесь.</p></div>;
+
+  console.log(matches)
+
+  return <div className="news-empty"><p>Тут будет красивая сетка но пока ее нет.</p></div>
 }
 
 function MatchGroups({ matches, order, empty }: { matches: Match[]; order: 'recent' | 'upcoming'; empty: string }) {
@@ -167,8 +174,9 @@ function MatchGroups({ matches, order, empty }: { matches: Match[]; order: 'rece
   for (const match of matches) {
     const date = new Date(match.utcDate).getTime();
     const matchday = match.matchday;
-    const key = matchday && matchday > 0 ? `matchday-${matchday}` : `stage-${match.stage}`;
-    const label = matchday && matchday > 0 ? `Тур ${matchday}` : stageLabel(match.stage);
+    const isLeagueStage = match.stage === 'LEAGUE_STAGE';
+    const key = isLeagueStage && matchday && matchday > 0 ? `matchday-${matchday}` : `stage-${match.stage}`;
+    const label = isLeagueStage && matchday && matchday > 0 ? `Тур ${matchday}` : stageLabel(match.stage);
     const group = grouped.get(key) ?? { label, matches: [], sortDate: date };
     group.matches.push(match);
     group.sortDate = order === 'recent' ? Math.max(group.sortDate, date) : Math.min(group.sortDate, date);
@@ -185,9 +193,8 @@ function MatchGroups({ matches, order, empty }: { matches: Match[]; order: 'rece
 
 function stageLabel(stage: string): string {
   const labels: Record<string, string> = {
-    PLAYOFFS: 'Плей-офф',
-    ROUND_OF_32: '1/16 финала',
-    ROUND_OF_16: '1/8 финала',
+    PLAYOFFS: '1/16 финала',
+    LAST_16: '1/8 финала',
     QUARTER_FINALS: 'Четвертьфинал',
     SEMI_FINALS: 'Полуфинал',
     FINAL: 'Финал',

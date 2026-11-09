@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import StandingsDashboard from '@/app/standings-dashboard';
+import {currentSeason, seasons} from "@/app/site-config";
 
 const league = { slug: 'champions-league', name: 'Лига чемпионов УЕФА' };
 const sections = {
@@ -10,7 +11,10 @@ const sections = {
   calendar: { label: 'Календарь', title: 'Календарь Лиги чемпионов', description: 'Расписание предстоящих матчей Лиги чемпионов УЕФА.' },
 } as const;
 
-type Props = { params: Promise<{ league: string; section: string }> };
+type Props = {
+  params: Promise<{ league: string; section: string }>
+  searchParams: Promise<{ season?: string }>
+};
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { league: leagueSlug, section } = await params;
@@ -24,8 +28,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function LeagueSectionPage({ params }: Props) {
+export default async function LeagueSectionPage({ params, searchParams }: Props) {
   const { league: leagueSlug, section } = await params;
-  if (leagueSlug !== league.slug || !Object.hasOwn(sections, section)) notFound();
-  return <StandingsDashboard section={section as keyof typeof sections} sections={sections} />;
+  const { season } = await searchParams;
+
+  const selectedSeason = Number(season || currentSeason);
+  const hasSeason = seasons.includes(selectedSeason as typeof seasons[number]);
+
+  if (leagueSlug !== league.slug || !Object.hasOwn(sections, section) || !hasSeason) notFound();
+  return <StandingsDashboard section={section as keyof typeof sections} sections={sections} league={leagueSlug} selectedSeason={selectedSeason} />;
 }
