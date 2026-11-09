@@ -160,6 +160,7 @@ function MatchTime({ value }: { value: string }) {
 
 function PlayoffsGrid({ matches }: { matches: Match[] }) {
   const [expandedTies, setExpandedTies] = useState<Set<string>>(() => new Set());
+  const [focusedTlas, setFocusedTlas] = useState<Set<string> | null>(null);
   if (!matches.length) return <div className="news-empty"><p>\u041c\u0430\u0442\u0447\u0438 \u043f\u043b\u0435\u0439-\u043e\u0444\u0444 \u043f\u043e\u044f\u0432\u044f\u0442\u0441\u044f \u0437\u0434\u0435\u0441\u044c.</p></div>;
 
   const stages = ['PLAYOFFS', 'LAST_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'FINAL'];
@@ -189,18 +190,28 @@ function PlayoffsGrid({ matches }: { matches: Match[] }) {
           if (!leg) return null;
           return leg.homeTeam.id === teamId ? leg.score.fullTime.home : leg.awayTeam.id === teamId ? leg.score.fullTime.away : null;
         });
-        const homeScores = scoresForTeam(home.id);
-        const awayScores = scoresForTeam(away.id);
+        const scoreCount = column.stage === 'FINAL' ? 1 : 2;
+        const homeScores = scoresForTeam(home.id).slice(0, scoreCount);
+        const awayScores = scoresForTeam(away.id).slice(0, scoreCount);
+        const bothLegsFinished = legs.length >= 2 && legs.slice(0, 2).every(leg =>
+          leg.status === 'FINISHED' && leg.score.fullTime.home !== null && leg.score.fullTime.away !== null,
+        );
+        const homeTotal = homeScores.reduce<number>((total, score) => total + (score ?? 0), 0);
+        const awayTotal = awayScores.reduce<number>((total, score) => total + (score ?? 0), 0);
+        const homeWon = bothLegsFinished && homeTotal > awayTotal;
+        const awayWon = bothLegsFinished && awayTotal > homeTotal;
+        const tieTlas = new Set(legs.flatMap(leg => [leg.homeTeam.tla, leg.awayTeam.tla]).filter((tla): tla is string => Boolean(tla)));
+        const isFocused = focusedTlas !== null && [...tieTlas].some(tla => focusedTlas.has(tla));
         const expanded = expandedTies.has(key);
         const toggle = () => setExpandedTies(current => {
           const next = new Set(current);
           if (next.has(key)) next.delete(key); else next.add(key);
           return next;
         });
-        return <div className="playoff-tie" key={key}>
-          <button type="button" className="playoff-fixture" onClick={toggle} aria-expanded={expanded}>
-            <span className="playoff-team"><img src={home?.crest ?? ''} alt="" /><span>{home?.name ?? '\u041e\u043f\u0440\u0435\u0434\u0435\u043b\u0438\u0442\u0441\u044f \u043f\u043e\u0437\u0436\u0435'}</span>{homeScores.map((score, index) => <b key={index}>{score ?? '\u2013'}</b>)}</span>
-            <span className="playoff-team"><img src={away?.crest ?? ''} alt="" /><span>{away?.name ?? '\u041e\u043f\u0440\u0435\u0434\u0435\u043b\u0438\u0442\u0441\u044f \u043f\u043e\u0437\u0436\u0435'}</span>{awayScores.map((score, index) => <b key={index}>{score ?? '\u2013'}</b>)}</span>
+        return <div className="playoff-tie" key={key} onMouseEnter={() => setFocusedTlas(tieTlas)} onMouseLeave={() => setFocusedTlas(null)}>
+          <button type="button" className={`playoff-fixture${isFocused ? ' focused' : ''}${column.stage === 'FINAL' ? ' final' : ''}`} onClick={toggle} aria-expanded={expanded}>
+            <span className={`playoff-team${homeWon ? ' winner' : ''}`}><img src={home?.crest ?? ''} alt="" /><span>{home?.name ?? '\u041e\u043f\u0440\u0435\u0434\u0435\u043b\u0438\u0442\u0441\u044f \u043f\u043e\u0437\u0436\u0435'}</span>{homeScores.map((score, index) => <b key={index}>{score ?? '\u2013'}</b>)}</span>
+            <span className={`playoff-team${awayWon ? ' winner' : ''}`}><img src={away?.crest ?? ''} alt="" /><span>{away?.name ?? '\u041e\u043f\u0440\u0435\u0434\u0435\u043b\u0438\u0442\u0441\u044f \u043f\u043e\u0437\u0436\u0435'}</span>{awayScores.map((score, index) => <b key={index}>{score ?? '\u2013'}</b>)}</span>
           </button>
           {expanded && <div className="playoff-leg-results">{legs.map(leg => {
             const date = new Date(leg.utcDate);
