@@ -160,7 +160,6 @@ html[data-theme='light'] .teamRival__name,html[data-theme='light'] .teamRival__i
 .playoff-leg time{font-size:9px}
 .playoff-leg b{color:var(--text);font-size:10px;white-space:nowrap}
 .playoff-tie{position:relative}
-.playoff-tie:has(.playoff-fixture[aria-expanded='true']){z-index:10}
 .playoff-fixture .playoff-team{grid-template-columns:20px minmax(0,1fr) repeat(2,22px)}
 .playoff-fixture .playoff-team b{justify-self:end;color:var(--text);font:600 12px "DM Mono",monospace}
 .playoff-leg-results{position:absolute;top:calc(100% - 1px);left:5px;right:5px;z-index:8;margin:0;padding:5px 7px;border:1px solid var(--border);border-radius:0 0 7px 7px;background:var(--surface);box-shadow:0 8px 18px #02040b66}

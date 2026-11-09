@@ -5,22 +5,9 @@ export const TEAM_NAME_ALIASES: Record<string, string> = {
   'Paris Saint-Germain FC': 'PSG'
 };
 
-const aliasesByNormalizedName = new Map(
-  Object.entries(TEAM_NAME_ALIASES).map(([name, replacement]) => [name.trim().toLocaleLowerCase(), replacement]),
-);
-
-export function getCanonicalTeamName(name?: string | null): string | undefined {
-  if (!name) return undefined;
-  return aliasesByNormalizedName.get(name.trim().toLocaleLowerCase()) ?? name;
-}
-
-export function getTeamDisplayName(team: { name?: string | null; shortName?: string | null }, preferShortName = false): string {
-  const names = preferShortName ? [team.shortName, team.name] : [team.name, team.shortName];
-  for (const name of names) {
-    const canonicalName = getCanonicalTeamName(name);
-    if (canonicalName && canonicalName !== name) return canonicalName;
-  }
-  return names.find(Boolean) ?? '';
+export function getTeamDisplayName(team: { name?: string | null; shortName?: string | null }): string {
+  const name = team.shortName || team.name;
+  return name ? TEAM_NAME_ALIASES[name] ?? name : '';
 }
 
 export const seasons = [2024, 2025, 2026] as const;

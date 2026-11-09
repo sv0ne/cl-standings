@@ -72,7 +72,7 @@ export default function StandingsDashboard({ section, sections, selectedSeason, 
       {section === 'table' && <>
         <div className="legend"><span><i className="legend-direct" /> 1–8 · 1/8 финала</span><span><i className="legend-playoff" /> 9–24 · стыковые</span><span><i className="legend-out" /> 25–36 · выбывание</span></div>
         <div className="table-switch" role="tablist" aria-label="Этап турнира"><button role="tab" aria-selected={tableMode === 'league'} className={tableMode === 'league' ? 'active' : ''} onClick={() => setTableMode('league')}>Этап лиги</button><button role="tab" aria-selected={tableMode === 'playoffs'} className={tableMode === 'playoffs' ? 'active' : ''} onClick={() => setTableMode('playoffs')}>Плей-офф</button></div>
-        {tableMode === 'league' ? <ScrollableStandings><table className="standings"><thead><tr><th className="team-head">КЛУБ</th><th title="Сыграно">И</th><th title="Победы">В</th><th title="Ничьи">Н</th><th title="Поражения">П</th><th title="Разница мячей">РМ</th><th className="points-head" title="Очки">О</th>{Array.from({ length: 8 }, (_, i) => <th className="round-head" key={i}>ТУР <b>{i + 1}</b></th>)}</tr></thead><tbody>{rows.map((row, index) => <tr key={row.team.id}><th className="team-head"><span className={`rank rank-${index < 8 ? 'direct' : index < 24 ? 'playoff' : 'out'}`}>{row.position}</span><img src={row.team.crest} alt="" /><span className="team-name">{getTeamDisplayName(row.team, true)}</span></th><td>{row.playedGames}</td><td className="positive">{row.won}</td><td>{row.draw}</td><td className="negative">{row.lost}</td><td>{row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}</td><td className="points">{row.points}</td>{Array.from({ length: 8 }, (_, round) => <MatchCell key={formByTeam.get(row.team.id)?.[round]?.id ?? round} match={formByTeam.get(row.team.id)?.[round]} teamId={row.team.id} />)}</tr>)}</tbody></table>{!rows.length && !error && <div className="empty-state">Загружаем турнирную таблицу…</div>}</ScrollableStandings> : <PlayoffsGrid matches={matches.filter(match => match.stage !== 'LEAGUE_STAGE')} />}
+        {tableMode === 'league' ? <ScrollableStandings><table className="standings"><thead><tr><th className="team-head">КЛУБ</th><th title="Сыграно">И</th><th title="Победы">В</th><th title="Ничьи">Н</th><th title="Поражения">П</th><th title="Разница мячей">РМ</th><th className="points-head" title="Очки">О</th>{Array.from({ length: 8 }, (_, i) => <th className="round-head" key={i}>ТУР <b>{i + 1}</b></th>)}</tr></thead><tbody>{rows.map((row, index) => <tr key={row.team.id}><th className="team-head"><span className={`rank rank-${index < 8 ? 'direct' : index < 24 ? 'playoff' : 'out'}`}>{row.position}</span><img src={row.team.crest} alt="" /><span className="team-name">{getTeamDisplayName(row.team)}</span></th><td>{row.playedGames}</td><td className="positive">{row.won}</td><td>{row.draw}</td><td className="negative">{row.lost}</td><td>{row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}</td><td className="points">{row.points}</td>{Array.from({ length: 8 }, (_, round) => <MatchCell key={formByTeam.get(row.team.id)?.[round]?.id ?? round} match={formByTeam.get(row.team.id)?.[round]} teamId={row.team.id} />)}</tr>)}</tbody></table>{!rows.length && !error && <div className="empty-state">Загружаем турнирную таблицу…</div>}</ScrollableStandings> : <PlayoffsGrid matches={matches.filter(match => match.stage !== 'LEAGUE_STAGE')} />}
         {tableMode === 'league' && <section className="format-guide"><div className="eyebrow muted">КАК УСТРОЕН НОВЫЙ ФОРМАТ</div><p>В общем этапе каждый клуб проводит восемь матчей с разными соперниками. Восемь лучших команд сразу выходят в 1/8 финала. Клубы с 9-го по 24-е место играют стыковые матчи за право продолжить путь, остальные завершают выступление.</p></section>}
       </>}
       {section === 'results' && <MatchGroups matches={matches.filter(match => match.status === 'FINISHED')} order="recent" empty="Завершённые матчи появятся здесь." />}
@@ -160,8 +160,10 @@ function MatchTime({ value }: { value: string }) {
 
 function PlayoffsGrid({ matches }: { matches: Match[] }) {
   const [expandedTies, setExpandedTies] = useState<Set<string>>(() => new Set());
+  const [tieZIndexes, setTieZIndexes] = useState<Map<string, number>>(() => new Map());
+  const [nextTieZIndex, setNextTieZIndex] = useState(11);
   const [focusedTlas, setFocusedTlas] = useState<Set<string> | null>(null);
-  if (!matches.length) return <div className="news-empty"><p>\u041c\u0430\u0442\u0447\u0438 \u043f\u043b\u0435\u0439-\u043e\u0444\u0444 \u043f\u043e\u044f\u0432\u044f\u0442\u0441\u044f \u0437\u0434\u0435\u0441\u044c.</p></div>;
+  if (!matches.length) return <div className="news-empty"><p>Матчи плей-офф появятся здесь.</p></div>;
 
   const stages = ['PLAYOFFS', 'LAST_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'FINAL'];
   const columns = stages.map(stage => {
@@ -178,7 +180,7 @@ function PlayoffsGrid({ matches }: { matches: Match[] }) {
     };
   }).filter(column => column.ties.length > 0);
 
-  return <div className="playoffs-grid" aria-label="\u0421\u0435\u0442\u043a\u0430 \u043f\u043b\u0435\u0439-\u043e\u0444\u0444">
+  return <div className="playoffs-grid" aria-label="Сетка плей-офф">
     {columns.map(column => <section className="playoff-column" key={column.stage}>
       <h2>{stageLabel(column.stage)}</h2>
       <div className="playoff-fixtures">{column.ties.map(({ key, legs }) => {
@@ -200,25 +202,32 @@ function PlayoffsGrid({ matches }: { matches: Match[] }) {
         const awayTotal = awayScores.reduce<number>((total, score) => total + (score ?? 0), 0);
         const homeWon = bothLegsFinished && homeTotal > awayTotal;
         const awayWon = bothLegsFinished && awayTotal > homeTotal;
-        const tieTlas = new Set(legs.flatMap(leg => [leg.homeTeam.tla, leg.awayTeam.tla]).filter((tla): tla is string => Boolean(tla)));
-        const isFocused = focusedTlas !== null && [...tieTlas].some(tla => focusedTlas.has(tla));
+        const tieTlas = new Set(legs.flatMap(leg => [leg.homeTeam.shortName, leg.awayTeam.shortName]).filter((shortName): shortName is string => Boolean(shortName)));
+        const isFocused = focusedTlas !== null && [...tieTlas].some(shortName => focusedTlas.has(shortName));
         const expanded = expandedTies.has(key);
-        const toggle = () => setExpandedTies(current => {
-          const next = new Set(current);
-          if (next.has(key)) next.delete(key); else next.add(key);
-          return next;
-        });
-        return <div className="playoff-tie" key={key} onMouseEnter={() => setFocusedTlas(tieTlas)} onMouseLeave={() => setFocusedTlas(null)}>
+        const toggle = () => {
+          const closing = expandedTies.has(key);
+          setExpandedTies(current => {
+            const next = new Set(current);
+            if (closing) next.delete(key); else next.add(key);
+            return next;
+          });
+          if (!closing) {
+            setTieZIndexes(current => new Map(current).set(key, nextTieZIndex));
+            setNextTieZIndex(current => current + 1);
+          }
+        };
+        return <div className="playoff-tie" key={key} style={{ zIndex: expanded ? tieZIndexes.get(key) : undefined }} onMouseEnter={() => setFocusedTlas(tieTlas)} onMouseLeave={() => setFocusedTlas(null)}>
           <button type="button" className={`playoff-fixture${isFocused ? ' focused' : ''}${column.stage === 'FINAL' ? ' final' : ''}`} onClick={toggle} aria-expanded={expanded}>
-            <span className={`playoff-team${homeWon ? ' winner' : ''}`}><img src={home?.crest ?? ''} alt="" /><span>{home?.name ?? '\u041e\u043f\u0440\u0435\u0434\u0435\u043b\u0438\u0442\u0441\u044f \u043f\u043e\u0437\u0436\u0435'}</span>{homeScores.map((score, index) => <b key={index}>{score ?? '\u2013'}</b>)}</span>
-            <span className={`playoff-team${awayWon ? ' winner' : ''}`}><img src={away?.crest ?? ''} alt="" /><span>{away?.name ?? '\u041e\u043f\u0440\u0435\u0434\u0435\u043b\u0438\u0442\u0441\u044f \u043f\u043e\u0437\u0436\u0435'}</span>{awayScores.map((score, index) => <b key={index}>{score ?? '\u2013'}</b>)}</span>
+            <span className={`playoff-team${homeWon ? ' winner' : ''}`}><img src={home?.crest ?? ''} alt="" /><span>{home?.shortName ? getTeamDisplayName(home) : 'Определиться позже'}</span>{homeScores.map((score, index) => <b key={index}>{score ?? '–'}</b>)}</span>
+            <span className={`playoff-team${awayWon ? ' winner' : ''}`}><img src={away?.crest ?? ''} alt="" /><span>{away?.shortName ? getTeamDisplayName(away) : 'Определиться позже'}</span>{awayScores.map((score, index) => <b key={index}>{score ?? '–'}</b>)}</span>
           </button>
           {expanded && <div className="playoff-leg-results">{legs.map(leg => {
             const date = new Date(leg.utcDate);
             const hasScore = leg.score.fullTime.home !== null && leg.score.fullTime.away !== null;
             return <div className="playoff-leg" key={leg.id}>
               <time dateTime={leg.utcDate}>{date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', timeZone: 'UTC' })}</time>
-              <span>{leg.homeTeam.tla ?? leg.homeTeam.shortName ?? '\u2014'} - {leg.awayTeam.tla ?? leg.awayTeam.shortName ?? '\u2014'}</span>
+              <span>{leg.homeTeam.tla ?? leg.homeTeam.tla ?? '—'} - {leg.awayTeam.tla ?? leg.awayTeam.tla ?? '—'}</span>
               <b>{hasScore ? `${leg.score.fullTime.home} - ${leg.score.fullTime.away}` : ''}</b>
             </div>;
           })}</div>}
