@@ -159,11 +159,62 @@ function MatchTime({ value }: { value: string }) {
 }
 
 function PlayoffsGrid({ matches }: { matches: Match[] }) {
-  if (!matches.length) return <div className="news-empty"><p>Матчи плей-офф появятся здесь.</p></div>;
+  const [expandedTies, setExpandedTies] = useState<Set<string>>(() => new Set());
+  if (!matches.length) return <div className="news-empty"><p>\u041c\u0430\u0442\u0447\u0438 \u043f\u043b\u0435\u0439-\u043e\u0444\u0444 \u043f\u043e\u044f\u0432\u044f\u0442\u0441\u044f \u0437\u0434\u0435\u0441\u044c.</p></div>;
 
-  console.log(matches)
+  const stages = ['PLAYOFFS', 'LAST_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'FINAL'];
+  const columns = stages.map(stage => {
+    const stageMatches = matches.filter(match => match.stage === stage);
+    const ties = new Map<string, Match[]>();
+    for (const match of stageMatches) {
+      const ids = [match.homeTeam?.id, match.awayTeam?.id];
+      const tieKey = ids.every(id => id != null) ? `${stage}-${[...ids].sort((a, b) => a! - b!).join('-')}` : `${stage}-match-${match.id}`;
+      ties.set(tieKey, [...(ties.get(tieKey) ?? []), match]);
+    }
+    return {
+      stage,
+      ties: [...ties.entries()].map(([key, legs]) => ({ key, legs: legs.sort((a, b) => new Date(a.utcDate).getTime() - new Date(b.utcDate).getTime()) })),
+    };
+  }).filter(column => column.ties.length > 0);
 
-  return <div className="news-empty"><p>Тут будет красивая сетка но пока ее нет.</p></div>
+  return <div className="playoffs-grid" aria-label="\u0421\u0435\u0442\u043a\u0430 \u043f\u043b\u0435\u0439-\u043e\u0444\u0444">
+    {columns.map(column => <section className="playoff-column" key={column.stage}>
+      <h2>{stageLabel(column.stage)}</h2>
+      <div className="playoff-fixtures">{column.ties.map(({ key, legs }) => {
+        const firstLeg = legs[0];
+        const home = firstLeg.homeTeam;
+        const away = firstLeg.awayTeam;
+        const scoresForTeam = (teamId: number) => Array.from({ length: 2 }, (_, index) => {
+          const leg = legs[index];
+          if (!leg) return null;
+          return leg.homeTeam.id === teamId ? leg.score.fullTime.home : leg.awayTeam.id === teamId ? leg.score.fullTime.away : null;
+        });
+        const homeScores = scoresForTeam(home.id);
+        const awayScores = scoresForTeam(away.id);
+        const expanded = expandedTies.has(key);
+        const toggle = () => setExpandedTies(current => {
+          const next = new Set(current);
+          if (next.has(key)) next.delete(key); else next.add(key);
+          return next;
+        });
+        return <div className="playoff-tie" key={key}>
+          <button type="button" className="playoff-fixture" onClick={toggle} aria-expanded={expanded}>
+            <span className="playoff-team"><img src={home?.crest ?? ''} alt="" /><span>{home?.name ?? '\u041e\u043f\u0440\u0435\u0434\u0435\u043b\u0438\u0442\u0441\u044f \u043f\u043e\u0437\u0436\u0435'}</span>{homeScores.map((score, index) => <b key={index}>{score ?? '\u2013'}</b>)}</span>
+            <span className="playoff-team"><img src={away?.crest ?? ''} alt="" /><span>{away?.name ?? '\u041e\u043f\u0440\u0435\u0434\u0435\u043b\u0438\u0442\u0441\u044f \u043f\u043e\u0437\u0436\u0435'}</span>{awayScores.map((score, index) => <b key={index}>{score ?? '\u2013'}</b>)}</span>
+          </button>
+          {expanded && <div className="playoff-leg-results">{legs.map(leg => {
+            const date = new Date(leg.utcDate);
+            const hasScore = leg.score.fullTime.home !== null && leg.score.fullTime.away !== null;
+            return <div className="playoff-leg" key={leg.id}>
+              <time dateTime={leg.utcDate}>{date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', timeZone: 'UTC' })}</time>
+              <span>{leg.homeTeam.tla ?? leg.homeTeam.shortName ?? '\u2014'} - {leg.awayTeam.tla ?? leg.awayTeam.shortName ?? '\u2014'}</span>
+              <b>{hasScore ? `${leg.score.fullTime.home} - ${leg.score.fullTime.away}` : ''}</b>
+            </div>;
+          })}</div>}
+        </div>;
+      })}</div>
+    </section>)}
+  </div>;
 }
 
 function MatchGroups({ matches, order, empty }: { matches: Match[]; order: 'recent' | 'upcoming'; empty: string }) {

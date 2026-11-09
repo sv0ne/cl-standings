@@ -138,3 +138,29 @@ html[data-theme='light'] .teamRival__name,html[data-theme='light'] .teamRival__i
 .standings th,.standings td{height:auto;min-height:0;padding:6px;color:#fff;font:14px/1.35 "Segoe UI",Tahoma,Geneva,Verdana,sans-serif}
 .standings thead th{height:auto;padding:8px 6px;color:#d7d8dc;font:14px/1.35 "Segoe UI",Tahoma,Geneva,Verdana,sans-serif;letter-spacing:0}
 
+.playoffs-grid{display:grid;grid-auto-columns:minmax(220px,1fr);grid-auto-flow:column;gap:16px;align-items:stretch;overflow-x:auto;padding:4px 2px 14px;scrollbar-color:var(--border) transparent}
+.playoff-column{min-width:0}
+.playoff-column>h2{margin:0 0 14px;padding:0 0 10px;border-bottom:1px solid var(--border);color:var(--gold);font:600 14px/1.3 "Segoe UI",Arial,sans-serif}
+.playoff-fixtures{display:flex;flex-direction:column;justify-content:space-around;gap:14px;min-height:240px;height:calc(100% - 34px)}
+.playoff-fixture{position:relative;min-width:0;padding:9px 10px 8px;border:1px solid var(--border);border-left:2px solid #dfbf7666;border-radius:8px;background:linear-gradient(145deg,var(--surface-2),var(--surface));box-shadow:0 8px 22px #02040b24}
+.playoff-team{display:grid;grid-template-columns:20px minmax(0,1fr) 22px;align-items:center;gap:7px;min-height:30px;border-top:1px solid #ffffff0a;font-size:11px}
+.playoff-team img{width:19px;height:19px;object-fit:contain}
+.playoff-team span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.playoff-team b{justify-self:end;font:600 12px "DM Mono",monospace}
+@media(max-width:700px){.playoffs-grid{grid-auto-columns:minmax(205px,78vw);gap:12px}.playoff-fixtures{min-height:190px}}
+.playoff-fixture{display:block;width:100%;padding:8px 10px;border:1px solid var(--border);border-left:2px solid #dfbf7666;border-radius:8px;background:linear-gradient(145deg,var(--surface-2),var(--surface));box-shadow:0 8px 22px #02040b24;text-align:left;transition:border-color .18s,background .18s}
+.playoff-fixture:hover,.playoff-fixture[aria-expanded='true']{border-color:#dfbf7680;background:linear-gradient(145deg,#172237,var(--surface))}
+.playoff-fixture .playoff-team{display:grid;grid-template-columns:20px minmax(0,1fr) 22px;align-items:center;gap:7px;min-height:30px;border-top:1px solid #ffffff0a;color:var(--text);font-size:11px}
+.playoff-fixture .playoff-team:first-child{border-top:0}
+.playoff-fixture .playoff-team img{width:19px;height:19px;object-fit:contain}
+.playoff-fixture .playoff-team span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.playoff-fixture .playoff-team b{justify-self:end;color:var(--text);font:600 12px "DM Mono",monospace}
+.playoff-leg-results{margin:0 5px;padding:5px 7px;border:1px solid var(--border);border-top:0;border-radius:0 0 7px 7px;background:var(--surface);}
+.playoff-leg{display:grid;grid-template-columns:38px minmax(0,1fr) auto;align-items:center;gap:5px;min-height:25px;color:var(--muted);font:10px "DM Mono",monospace}
+.playoff-leg time{font-size:9px}
+.playoff-leg b{color:var(--text);font-size:10px;white-space:nowrap}
+.playoff-tie{position:relative}
+.playoff-tie:has(.playoff-fixture[aria-expanded='true']){z-index:10}
+.playoff-fixture .playoff-team{grid-template-columns:20px minmax(0,1fr) repeat(2,22px)}
+.playoff-fixture .playoff-team b{justify-self:end;color:var(--text);font:600 12px "DM Mono",monospace}
+.playoff-leg-results{position:absolute;top:calc(100% - 1px);left:5px;right:5px;z-index:8;margin:0;padding:5px 7px;border:1px solid var(--border);border-radius:0 0 7px 7px;background:var(--surface);box-shadow:0 8px 18px #02040b66}
