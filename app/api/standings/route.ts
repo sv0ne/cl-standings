@@ -13,7 +13,7 @@ const getCachedFootballData = unstable_cache(
     if (!token) throw new Error('MISSING_API_KEY');
 
     const headers = { 'X-Auth-Token': token };
-    const base = 'https://api.football-data.org/v4/competitions/CL';
+    const base = 'https://api.football-data.org/v4/competitions/CL'; // PD
     const [standingRes, matchesRes] = await Promise.all([
       fetch(`${base}/standings?season=${season}`, { headers, cache: 'no-store' }),
       fetch(`${base}/matches?season=${season}`, { headers, cache: 'no-store' }),

@@ -156,13 +156,20 @@ html[data-theme='light'] .teamRival__name,html[data-theme='light'] .teamRival__i
 .playoff-fixture .playoff-team span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .playoff-fixture .playoff-team b{justify-self:end;color:var(--text);font:600 12px "DM Mono",monospace}
 .playoff-leg-results{margin:0 5px;padding:5px 7px;border:1px solid var(--border);border-top:0;border-radius:0 0 7px 7px;background:var(--surface);}
-.playoff-leg{display:grid;grid-template-columns:38px minmax(0,1fr) auto;align-items:center;gap:5px;min-height:25px;color:var(--muted);font:10px "DM Mono",monospace}
+.playoff-leg{display:grid;grid-template-columns:38px minmax(0,1fr) auto;align-items:center;gap:5px;padding: 5px 0;color:var(--muted);font:10px "DM Mono",monospace}
 .playoff-leg time{font-size:9px}
 .playoff-leg b{color:var(--text);font-size:10px;white-space:nowrap}
+.playoff-leg-results .playoff-leg:first-child{
+    border-bottom: 1px solid var(--border);}
 .playoff-tie{position:relative}
 .playoff-fixture .playoff-team{grid-template-columns:20px minmax(0,1fr) repeat(2,22px)}
+.playoff-fixture.hasPenalty .playoff-team{grid-template-columns:20px minmax(0,1fr) repeat(2,38px)}
 .playoff-fixture .playoff-team b{justify-self:end;color:var(--text);font:600 12px "DM Mono",monospace}
+.playoff-fixture .playoff-team b small{margin-left:2px;color:var(--muted);font:500 9px "DM Mono",monospace}
 .playoff-leg-results{position:absolute;top:calc(100% - 1px);left:5px;right:5px;z-index:8;margin:0;padding:5px 7px;border:1px solid var(--border);border-radius:0 0 7px 7px;background:var(--surface);box-shadow:0 8px 18px #02040b66}
 .playoff-fixture.focused{border-color:#dfbf7680;background:linear-gradient(145deg,#172237,var(--surface));box-shadow:0 0 0 1px #dfbf7633,0 8px 22px #02040b24}
 .playoff-fixture.final .playoff-team{grid-template-columns:20px minmax(0,1fr) 22px}
+.playoff-fixture.final.hasPenalty .playoff-team{grid-template-columns:20px minmax(0,1fr) 38px}
 .playoff-fixture .playoff-team.winner span{font-weight:800;color:#fff}
+.playoff-leg-details{display:grid;gap:6px;min-width:0}
+.playoff-penalties{font-size: 12px;}
