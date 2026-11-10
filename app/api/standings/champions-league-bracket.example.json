@@ -1,35 +1,6 @@
 {
   "source": "https://www.uefa.com/uefachampionsleague/fixtures-results/bracket/",
   "season": {
-    "2024": [
-      {
-        "id": "PLAYOFFS",
-        "pools": [
-          { "id": "KPO-1", "variants": [21, 22, 11, 12],  "results": [21, 11] },
-          { "id": "KPO-2", "variants": [19, 20, 13, 14],  "results": [20, 13] },
-          { "id": "KPO-3", "variants": [23, 24, 9, 10],  "results": [24, 9] },
-          { "id": "KPO-4", "variants": [17, 18, 15, 16],  "results": [17, 15] },
-
-          { "id": "KPO-1", "variants": [21, 22, 11, 12],  "results": [22, 12] },
-          { "id": "KPO-2", "variants": [19, 20, 13, 14],  "results": [19, 14] },
-          { "id": "KPO-3", "variants": [23, 24, 9, 10],  "results": [23, 10] },
-          { "id": "KPO-4", "variants": [17, 18, 15, 16],  "results": [18, 16] }
-        ]
-      },{
-        "id": "LAST_16",
-        "pools": [
-          { "id": "R16-1", "variants": [5, 6],  "results": [6] },
-          { "id": "R16-2", "variants": [3, 4],  "results": [3] },
-          { "id": "R16-3", "variants": [7, 8],  "results": [8] },
-          { "id": "R16-4", "variants": [1, 2],  "results": [2] },
-
-          { "id": "R16-1", "variants": [5, 6],  "results": [5] },
-          { "id": "R16-2", "variants": [3, 4],  "results": [4] },
-          { "id": "R16-3", "variants": [7, 8],  "results": [7] },
-          { "id": "R16-4", "variants": [1, 2],  "results": [1] }
-        ]
-      }
-    ],
     "2025": [
       {
         "id": "PLAYOFFS",

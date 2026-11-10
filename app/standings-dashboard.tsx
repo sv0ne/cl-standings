@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {seasons, getTeamDisplayName, currentSeason} from './site-config';
-import { useStandings, type Match } from './standings-store';
+import { useStandings, type Match, type Team } from './standings-store';
 import {useRouter} from "next/navigation";
 
 type Section = 'news' | 'table' | 'results' | 'calendar';
@@ -168,10 +168,13 @@ function PlayoffsGrid({ matches, selectedSeason }: { matches: Match[]; selectedS
   const [tieZIndexes, setTieZIndexes] = useState<Map<string, number>>(() => new Map());
   const [nextTieZIndex, setNextTieZIndex] = useState(11);
   const [focusedTlas, setFocusedTlas] = useState<Set<string> | null>(null);
-  if (!matches.length) return <div className="news-empty"><p>Матчи плей-офф появятся здесь.</p></div>;
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [bracketLines, setBracketLines] = useState<{ key: string; path: string }[]>([]);
+  const [bracketSize, setBracketSize] = useState({ width: 0, height: 0 });
 
   const stages = ['PLAYOFFS', 'LAST_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'FINAL'];
-  const columns = stages.map(stage => {
+  type TieView = { key: string; legs: Match[]; teams: Team[]; bye?: boolean };
+  const columns: { stage: string; ties: TieView[] }[] = stages.map(stage => {
     const stageMatches = matches.filter(match => match.stage === stage);
     const ties = new Map<string, Match[]>();
     for (const match of stageMatches) {
@@ -181,16 +184,119 @@ function PlayoffsGrid({ matches, selectedSeason }: { matches: Match[]; selectedS
     }
     return {
       stage,
-      ties: [...ties.entries()].map(([key, legs]) => ({ key, legs: legs.sort((a, b) => new Date(a.utcDate).getTime() - new Date(b.utcDate).getTime()) })),
+      ties: [...ties.entries()].map(([key, legs]) => {
+        const sortedLegs = legs.sort((a, b) => new Date(a.utcDate).getTime() - new Date(b.utcDate).getTime());
+        return { key, legs: sortedLegs, teams: [sortedLegs[0].homeTeam, sortedLegs[0].awayTeam] };
+      }),
     };
   }).filter(column => column.ties.length > 0);
 
+  // Arrange each round from the final backwards, following team IDs into the prior round.
+  for (let index = columns.length - 1; index > 0; index--) {
+    const laterRound = columns[index];
+    const earlierRound = columns[index - 1];
+    const ordered: TieView[] = [];
+    const used = new Set<string>();
+    for (const laterTie of laterRound.ties) {
+      for (const team of laterTie.teams) {
+        const priorTie = earlierRound.ties.find(tie => tie.teams.some(candidate => candidate.id === team.id));
+        if (priorTie && !used.has(priorTie.key)) {
+          ordered.push(priorTie);
+          used.add(priorTie.key);
+        }
+      }
+    }
+    earlierRound.ties = [...ordered, ...earlierRound.ties.filter(tie => !used.has(tie.key))];
+  }
+
+  // In the new format, teams that entered directly in LAST_16 get a single-team slot in PLAYOFFS.
+  const playoffs = columns.find(column => column.stage === 'PLAYOFFS');
+  const last16 = columns.find(column => column.stage === 'LAST_16');
+  if (playoffs && last16) {
+    const ordered: TieView[] = [];
+    const used = new Set<string>();
+    for (const tie of last16.ties) {
+      for (const team of tie.teams) {
+        const playoffTie = playoffs.ties.find(candidate => candidate.teams.some(entry => entry.id === team.id));
+        if (playoffTie && !used.has(playoffTie.key)) {
+          ordered.push(playoffTie);
+          used.add(playoffTie.key);
+        } else if (!playoffTie) {
+          ordered.push({ key: `PLAYOFFS-bye-${team.id}`, legs: [], teams: [team], bye: true });
+        }
+      }
+    }
+    playoffs.ties = [...ordered, ...playoffs.ties.filter(tie => !used.has(tie.key))];
+  }
+
+  const tieConnections = columns.slice(1).flatMap((laterRound, index) => {
+    const earlierRound = columns[index];
+    return earlierRound.ties.flatMap(priorTie => {
+      const nextTie = laterRound.ties.find(tie => tie.teams.some(team => priorTie.teams.some(priorTeam => priorTeam.id === team.id)));
+      return nextTie ? [{ from: priorTie.key, to: nextTie.key }] : [];
+    });
+  });
+  const tieConnectionsRef = useRef(tieConnections);
+  tieConnectionsRef.current = tieConnections;
+  const tieConnectionSignature = tieConnections.map(({ from, to }) => `${from}->${to}`).join('|');
+
+  useLayoutEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+
+    const updateLines = () => {
+      const gridRect = grid.getBoundingClientRect();
+      const size = { width: grid.scrollWidth, height: grid.scrollHeight };
+      setBracketSize(current => current.width === size.width && current.height === size.height ? current : size);
+      const tieElements = new Map(
+        [...grid.querySelectorAll<HTMLElement>('[data-playoff-tie]')].map(element => [element.dataset.playoffTie!, element]),
+      );
+      const paths = tieConnectionsRef.current.flatMap(({ from, to }) => {
+        const fromElement = tieElements.get(from);
+        const toElement = tieElements.get(to);
+        if (!fromElement || !toElement) return [];
+        const fromRect = fromElement.getBoundingClientRect();
+        const toRect = toElement.getBoundingClientRect();
+        const x1 = fromRect.right - gridRect.left + grid.scrollLeft;
+        const y1 = fromRect.top + fromRect.height / 2 - gridRect.top + grid.scrollTop;
+        const x2 = toRect.left - gridRect.left + grid.scrollLeft;
+        const y2 = toRect.top + toRect.height / 2 - gridRect.top + grid.scrollTop;
+        const middleX = x1 + (x2 - x1) / 2;
+        return [{ key: `${from}->${to}`, path: `M ${x1} ${y1} H ${middleX} V ${y2} H ${x2}` }];
+      });
+      setBracketLines(current => JSON.stringify(current) === JSON.stringify(paths) ? current : paths);
+    };
+
+    updateLines();
+    const observer = new ResizeObserver(updateLines);
+    observer.observe(grid);
+    grid.querySelectorAll('[data-playoff-tie]').forEach(element => observer.observe(element));
+    window.addEventListener('resize', updateLines);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateLines);
+    };
+  }, [matches, expandedTies, selectedSeason, tieConnectionSignature]);
+
   console.log(columns);
 
-  return <div className="playoffs-grid" aria-label="Сетка плей-офф">
+  if (!matches.length) return <div className="news-empty"><p>Матчи плей-офф появятся здесь.</p></div>;
+
+  return <div className="playoffs-grid" ref={gridRef} aria-label="Сетка плей-офф">
+    <svg className="playoff-bracket-lines" aria-hidden="true" width={bracketSize.width} height={bracketSize.height}>
+      {bracketLines.map(({ key, path }) => <path key={key} d={path} />)}
+    </svg>
     {columns.map(column => <section className="playoff-column" key={column.stage}>
       <h2>{stageLabel(column.stage)}</h2>
-      <div className="playoff-fixtures">{column.ties.map(({ key, legs }) => {
+      <div className="playoff-fixtures">{column.ties.map(({ key, legs, teams, bye }) => {
+        if (bye) {
+          const team = teams[0];
+          const teamShortName = team.shortName;
+          const isFocused = focusedTlas?.has(teamShortName) ?? false;
+          return <div className="playoff-tie" key={key} data-playoff-tie={key} onMouseEnter={() => setFocusedTlas(new Set([teamShortName]))} onMouseLeave={() => setFocusedTlas(null)}>
+            <div className={`playoff-fixture bye${isFocused ? ' focused' : ''}`}><span className="playoff-team"><img src={team.crest} alt="" /><span>{getTeamDisplayName(team)}</span></span></div>
+          </div>;
+        }
         const firstLeg = legs[0];
         const home = firstLeg.homeTeam;
         const away = firstLeg.awayTeam;
@@ -235,7 +341,7 @@ function PlayoffsGrid({ matches, selectedSeason }: { matches: Match[]; selectedS
             setNextTieZIndex(current => current + 1);
           }
         };
-        return <div className="playoff-tie" key={key} style={{ zIndex: expanded ? tieZIndexes.get(key) : undefined }} onMouseEnter={() => setFocusedTlas(tieTlas)} onMouseLeave={() => setFocusedTlas(null)}>
+        return <div className="playoff-tie" key={key} data-playoff-tie={key} style={{ zIndex: expanded ? tieZIndexes.get(key) : undefined }} onMouseEnter={() => setFocusedTlas(tieTlas)} onMouseLeave={() => setFocusedTlas(null)}>
           <button type="button" className={`playoff-fixture${isFocused ? ' focused' : ''}${hasPenalty ? ' hasPenalty' : ''}${column.stage === 'FINAL' ? ' final' : ''}`} onClick={toggle} aria-expanded={expanded}>
             <span className={`playoff-team${homeWon ? ' winner' : ''}`}><img src={home?.crest ?? ''} alt="" /><span>{home?.shortName ? getTeamDisplayName(home) : 'Определиться позже'}</span>{homeScores.map((score, index) => <b key={index}>{goalsWithoutPenaltyShootout(score?.goals, score?.penalties) ?? '–'}{score && score.penalties != null && <small>({score.penalties})</small>}</b>)}</span>
             <span className={`playoff-team${awayWon ? ' winner' : ''}`}><img src={away?.crest ?? ''} alt="" /><span>{away?.shortName ? getTeamDisplayName(away) : 'Определиться позже'}</span>{awayScores.map((score, index) => <b key={index}>{goalsWithoutPenaltyShootout(score?.goals, score?.penalties) ?? '–'}{score && score.penalties != null && <small>({score.penalties})</small>}</b>)}</span>
