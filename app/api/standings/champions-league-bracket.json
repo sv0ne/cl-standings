@@ -29,6 +29,35 @@
           { "id": "R16-4", "variants": [1, 2],  "results": [1] }
         ]
       }
+    ],
+    "2026": [
+      {
+        "id": "PLAYOFFS",
+        "pools": [
+          { "id": "KPO-1", "variants": [21, 22, 11, 12],  "results": [] },
+          { "id": "KPO-2", "variants": [19, 20, 13, 14],  "results": [] },
+          { "id": "KPO-3", "variants": [23, 24, 9, 10],  "results": [] },
+          { "id": "KPO-4", "variants": [17, 18, 15, 16],  "results": [] },
+
+          { "id": "KPO-5", "variants": [21, 22, 11, 12],  "results": [] },
+          { "id": "KPO-6", "variants": [19, 20, 13, 14],  "results": [] },
+          { "id": "KPO-7", "variants": [23, 24, 9, 10],  "results": [] },
+          { "id": "KPO-8", "variants": [17, 18, 15, 16],  "results": [] }
+        ]
+      },{
+        "id": "LAST_16",
+        "pools": [
+          { "id": "R16-1", "variants": [5, 6],  "results": [] },
+          { "id": "R16-2", "variants": [3, 4],  "results": [] },
+          { "id": "R16-3", "variants": [7, 8],  "results": [] },
+          { "id": "R16-4", "variants": [1, 2],  "results": [] },
+
+          { "id": "R16-5", "variants": [5, 6],  "results": [] },
+          { "id": "R16-6", "variants": [3, 4],  "results": [] },
+          { "id": "R16-7", "variants": [7, 8],  "results": [] },
+          { "id": "R16-8", "variants": [1, 2],  "results": [] }
+        ]
+      }
     ]
   }
 }

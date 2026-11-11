@@ -5,7 +5,9 @@ import { useEffect, useSyncExternalStore } from 'react';
 export type Team = { id: number; name: string; shortName: string; tla?: string; crest: string };
 export type Standing = { position: number; team: Team; playedGames: number; won: number; draw: number; lost: number; goalDifference: number; points: number };
 export type Match = { id: number; utcDate: string; status: string; stage: string; matchday: number | null; homeTeam: Team; awayTeam: Team; score: { fullTime: { home: number | null; away: number | null }; penalties?: { home: number | null; away: number | null } | null } };
-export type Payload = { standings: { standings: { table: Standing[] }[] }; matches: { matches: Match[] }; dataUpdatedAt: string };
+export type BracketPool = { id: string; variants: number[]; results: number[] };
+export type BracketRule = { id: string; pools: BracketPool[] };
+export type Payload = { standings: { standings: { table: Standing[] }[] }; matches: { matches: Match[] }; dataUpdatedAt: string; rules?: BracketRule[] };
 type Snapshot = { data?: Payload; error?: string; loading: boolean; refreshing: boolean };
 
 const empty: Snapshot = { loading: false, refreshing: false };

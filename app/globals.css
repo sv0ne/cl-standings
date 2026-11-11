@@ -170,6 +170,9 @@ html[data-theme='light'] .teamRival__name,html[data-theme='light'] .teamRival__i
 .playoff-fixture .playoff-team b small{margin-left:2px;color:var(--muted);font:500 9px "DM Mono",monospace}
 .playoff-fixture.bye{cursor:default;opacity:.78}
 .playoff-fixture.bye .playoff-team{grid-template-columns:20px minmax(0,1fr)}
+.playoff-fixture.projected{cursor:default}
+.playoff-fixture.projected .playoff-team{grid-template-columns:minmax(0,1fr);min-height:34px;color:var(--text);font-size:11px}
+.playoff-fixture.projected .playoff-team+ .playoff-team{border-top:1px solid #ffffff12}
 .playoff-leg-results{position:absolute;top:calc(100% - 1px);left:5px;right:5px;z-index:8;margin:0;padding:5px 7px;border:1px solid var(--border);border-radius:0 0 7px 7px;background:var(--surface);box-shadow:0 8px 18px #02040b66}
 .playoff-fixture.focused{border-color:#ffb100e6;background:linear-gradient(145deg,#153777,var(--surface));box-shadow:0 0 0 1px #dfbf7633,0 8px 22px #02040b24}
 .playoff-fixture.final .playoff-team{grid-template-columns:20px minmax(0,1fr) 22px}

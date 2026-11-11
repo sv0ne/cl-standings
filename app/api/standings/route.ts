@@ -2,7 +2,8 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { unstable_cache } from 'next/cache';
 import { NextRequest, NextResponse } from 'next/server';
-import {seasons} from "@/app/site-config";
+import {currentSeason, seasons} from "@/app/site-config";
+import bracketConfig from './champions-league-bracket.json';
 
 const enableMocks = 0;
 const configuredFile = 'champions-league-data-3.json';
@@ -38,6 +39,10 @@ async function getMockData() {
   return { standings: snapshot.standings, matches: snapshot.matches };
 }
 
+function getBracketRules(season: number) {
+  return season === currentSeason ? bracketConfig.season[String(season) as keyof typeof bracketConfig.season] : undefined;
+}
+
 export async function GET(request: NextRequest) {
   const season = Number(request.nextUrl.searchParams.get('season') ?? new Date().getFullYear());
   if (!(seasons as readonly number[]).includes(season)) return NextResponse.json({ error: 'Unavailable season' }, { status: 400 });
@@ -45,7 +50,8 @@ export async function GET(request: NextRequest) {
   if (enableMocks) {
     try {
       const data = await getMockData();
-      return NextResponse.json(data, { headers: { 'Cache-Control': 'no-store' } });
+      const rules = getBracketRules(season);
+      return NextResponse.json({ ...data, ...(rules ? { rules } : {}) }, { headers: { 'Cache-Control': 'no-store' } });
     } catch (error) {
       console.error('Could not load standings mock:', error);
       return NextResponse.json({ error: 'Could not load the JSON data snapshot.' }, { status: 500 });
@@ -54,7 +60,8 @@ export async function GET(request: NextRequest) {
 
   try {
     const data = await getCachedFootballData(season);
-    return NextResponse.json(data, { headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' } });
+    const rules = getBracketRules(season);
+    return NextResponse.json({ ...data, ...(rules ? { rules } : {}) }, { headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' } });
   } catch (error) {
     if (error instanceof Error && error.message === 'MISSING_API_KEY') {
       return NextResponse.json({ error: 'Set FOOTBALL_DATA_API_KEY in .env.local or Vercel settings.' }, { status: 503 });
