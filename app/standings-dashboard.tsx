@@ -278,8 +278,6 @@ function PlayoffsGrid({ matches, selectedSeason }: { matches: Match[]; selectedS
     };
   }, [matches, expandedTies, selectedSeason, tieConnectionSignature]);
 
-  console.log(columns);
-
   if (!matches.length) return <div className="news-empty"><p>Матчи плей-офф появятся здесь.</p></div>;
 
   return <div className="playoffs-grid" ref={gridRef} aria-label="Сетка плей-офф">
