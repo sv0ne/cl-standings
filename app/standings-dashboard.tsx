@@ -173,7 +173,7 @@ function PlayoffsGrid({ matches, standings, rules, selectedSeason }: { matches: 
   const [bracketSize, setBracketSize] = useState({ width: 0, height: 0 });
 
   const stages = ['PLAYOFFS', 'LAST_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'FINAL'];
-  type TieView = { key: string; legs: Match[]; teams: Team[]; bye?: boolean; projectedRows?: { label: string; teams: Team[] }[]; connectsTo?: string };
+  type TieView = { key: string; legs: Match[]; teams: Team[]; bye?: boolean; projectedRows?: { label: string; teams: Team[]; placeholder?: boolean }[]; connectsTo?: string };
   const columns: { stage: string; ties: TieView[] }[] = stages.map(stage => {
     const stageMatches = matches.filter(match => match.stage === stage);
     const ties = new Map<string, Match[]>();
@@ -206,20 +206,6 @@ function PlayoffsGrid({ matches, standings, rules, selectedSeason }: { matches: 
     };
     const playoffPools = playoffRule?.pools ?? [];
     const last16Pools = last16Rule?.pools ?? [];
-    const playoffTies: TieView[] = playoffPools.map((pool, index) => {
-      const nextPool = last16Pools[index];
-      const nextKey = `PREDICTED-${nextPool?.id ?? `R16-${index + 1}`}-${index}`;
-      return {
-        key: `PREDICTED-${pool.id}-${index}`,
-        legs: [],
-        teams: [],
-        connectsTo: nextKey,
-        projectedRows: [
-          { label: '', teams: poolTeams(pool, 0) },
-          { label: '', teams: poolTeams(pool, 1) },
-        ],
-      };
-    });
     const last16Ties: TieView[] = playoffPools.map((pool, index) => {
       const nextPool = last16Pools[index];
       return {
@@ -227,14 +213,70 @@ function PlayoffsGrid({ matches, standings, rules, selectedSeason }: { matches: 
         legs: [],
         teams: [],
         projectedRows: [
-          { label: `Победитель ${pool.id}`, teams: [] },
-          { label: nextPool?.id ?? `R16-${index + 1}`, teams: poolTeams(nextPool, 0) },
+          { label: '', teams: [], placeholder: true },
+          { label: '', teams: poolTeams(nextPool, 0) },
         ],
       };
     });
+    const playoffTies: TieView[] = playoffPools.flatMap((pool, index) => {
+      const nextPool = last16Pools[index];
+      const nextKey = last16Ties[index].key;
+      return [
+        {
+          key: `PREDICTED-${pool.id}-${index}`,
+          legs: [],
+          teams: [],
+          connectsTo: nextKey,
+          projectedRows: [
+            { label: '', teams: poolTeams(pool, 0) },
+            { label: '', teams: poolTeams(pool, 1) },
+          ],
+        },
+        {
+          key: `PREDICTED-${nextPool?.id ?? `R16-${index + 1}`}-slot-${index}`,
+          legs: [],
+          teams: [],
+          connectsTo: nextKey,
+          projectedRows: [{ label: '', teams: poolTeams(nextPool, 0) }],
+        },
+      ];
+    });
+    const quarterFinalTies: TieView[] = Array.from({ length: 4 }, (_, index) => ({
+      key: `PREDICTED-QF-${index + 1}`,
+      legs: [],
+      teams: [],
+      projectedRows: [
+        { label: '', teams: [], placeholder: true },
+        { label: '', teams: [], placeholder: true },
+      ],
+    }));
+    const semiFinalTies: TieView[] = Array.from({ length: 2 }, (_, index) => ({
+      key: `PREDICTED-SF-${index + 1}`,
+      legs: [],
+      teams: [],
+      projectedRows: [
+        { label: '', teams: [], placeholder: true },
+        { label: '', teams: [], placeholder: true },
+      ],
+    }));
+    const finalTie: TieView[] = [{
+      key: 'PREDICTED-FINAL-1',
+      legs: [],
+      teams: [],
+      projectedRows: [
+        { label: '', teams: [], placeholder: true },
+        { label: '', teams: [], placeholder: true },
+      ],
+    }];
+    last16Ties.forEach((tie, index) => { tie.connectsTo = quarterFinalTies[Math.floor(index / 2)].key; });
+    quarterFinalTies.forEach((tie, index) => { tie.connectsTo = semiFinalTies[Math.floor(index / 2)].key; });
+    semiFinalTies.forEach(tie => { tie.connectsTo = finalTie[0].key; });
     columns.splice(0, columns.length,
       ...(playoffTies.length ? [{ stage: 'PLAYOFFS', ties: playoffTies }] : []),
       ...(last16Ties.length ? [{ stage: 'LAST_16', ties: last16Ties }] : []),
+      { stage: 'QUARTER_FINALS', ties: quarterFinalTies },
+      { stage: 'SEMI_FINALS', ties: semiFinalTies },
+      { stage: 'FINAL', ties: finalTie },
     );
   }
 
@@ -337,9 +379,11 @@ function PlayoffsGrid({ matches, standings, rules, selectedSeason }: { matches: 
       <div className="playoff-fixtures">{column.ties.map(({ key, legs, teams, bye, projectedRows }) => {
         if (projectedRows) return <div className="playoff-tie" key={key} data-playoff-tie={key}>
           <div className="playoff-fixture projected">{projectedRows.map((row, index) => {
-            const possibilities = row.teams.map(team => getTeamDisplayName(team)).join(' / ');
-            const description = [row.label, possibilities].filter(Boolean).join(': ');
-            return <span className="playoff-team" key={index}><span>{description || 'Определится позже'}</span></span>;
+            return <span className="playoff-team" key={index}>
+              {row.placeholder || !row.teams.length
+                ? <><i className="team-placeholder-icon" aria-hidden="true">?</i><span>{row.label || 'TBD'}</span></>
+                : <span className="projected-team-options">{row.teams.map((team, teamIndex) => <span className="projected-team-option" key={team.id}>{teamIndex > 0 && <span className="projected-team-separator">/</span>}<img src={team.crest} alt="" /><span>{getTeamDisplayName(team)}</span></span>)}</span>}
+            </span>;
           })}</div>
         </div>;
         if (bye) {
