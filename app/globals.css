@@ -99,12 +99,14 @@ html[data-theme='light'] .match-clock{color:#30394a}
 .teamRival__opponent{display:flex;align-items:center;gap:4px; max-width: 150px;}
 .teamRival__opponent .teamRival__logo{flex:0 0 24px;}
 .teamRival__opponent .teamRival__name{font-size:12px;line-height:1.25}
-.teamRival__meta-row{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0; height: 24px;}
+.teamRival__meta-row{display:flex;align-items:flex-end;justify-content:space-between;gap:6px;min-width:0; height: 24px;}
 .teamRival__meta{display:flex;align-items:center;justify-content:flex-start;gap:6px;min-width:0;min-height:20px}
 .teamRival__info,.teamRival__date{font:600 12px/1.2 "Segoe UI",Arial,sans-serif;white-space:nowrap}
 .teamRival__date{font-weight:500}
 .teamRival__homeTeam{position:relative;display:block;flex:0 0 32px;width:32px;height:24px}
-.teamRival__homeLogo{position:absolute;left:0;top:0;width:24px;height:24px;object-fit:contain}
+.teamRival__homeLogo{width:20px !important;height:20px !important;object-fit:contain}
+.teamRival__homeTeam{opacity: 0.6;}
+.teamRival__homeTeam:hover{opacity: 1;}
 .teamRival__homeIcon{position:absolute;right:1px;bottom:-1px;z-index:1;width:16px !important;height:16px !important;object-fit:contain;filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));}
 @media(max-width:700px){.match-row{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px}.match-row .match-time{grid-column:1/-1;grid-row:1;justify-content:center}.match-row .home-team{grid-column:1;grid-row:2}.match-row .match-score{grid-column:2;grid-row:2}.match-row .away-team{grid-column:3;grid-row:2}.match-row-spacer{display:none}}
 
@@ -123,7 +125,7 @@ html[data-theme='light'] .match-clock{color:#30394a}
 .teamRival__name{display:block;min-width:0;overflow:hidden;color:var(--text);font:600 11px/1.2 "Segoe UI",Arial,sans-serif;text-overflow:ellipsis;white-space:nowrap}
 .teamRival__meta{display:flex;align-items:center;justify-content:center;gap:6px;min-height:16px}
 .teamRival__info,.teamRival__date{color:var(--text);font:600 14px/1.2 "Segoe UI",Arial,sans-serif;letter-spacing:0;white-space:nowrap}
-.teamRival__date{color:#d2d8e1;font-size:12px;font-weight:500}
+.teamRival__date{color: #9fa0a3;font-size:12px;font-weight:500}
 .liveIcon{font:700 11px/1 "Segoe UI",Arial,sans-serif;letter-spacing:.5px}
 html[data-theme='light'] .teamRival__name,html[data-theme='light'] .teamRival__info{color:#20242b}
 @media(max-width:700px){.teamRival{min-width:120px}.teamRival__body{min-height:46px}.teamRival__name{font-size:10px}}
