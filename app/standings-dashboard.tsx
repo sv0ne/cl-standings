@@ -192,7 +192,13 @@ function PlayoffsGrid({ matches, standings, rules, selectedSeason }: { matches: 
   }).filter(column => column.ties.length > 0);
 
   const hasActualPlayoffs = matches.some(match => match.stage === 'PLAYOFFS');
-  const isForecast = selectedSeason === currentSeason && Boolean(rules?.length) && !hasActualPlayoffs;
+  const playoffRuleForSeason = rules?.find(rule => rule.id === 'PLAYOFFS');
+  const playoffDrawComplete = playoffRuleForSeason !== undefined
+    && playoffRuleForSeason.pools.length > 0
+    && playoffRuleForSeason.pools.every(pool => pool.results.length > 0);
+  const isForecast = selectedSeason === currentSeason
+    && Boolean(rules?.length)
+    && (!hasActualPlayoffs || playoffDrawComplete);
   if (isForecast) {
     const positionTeams = new Map(standings.map(row => [row.position, row.team]));
     const playoffRule = rules!.find(rule => rule.id === 'PLAYOFFS');
@@ -206,23 +212,42 @@ function PlayoffsGrid({ matches, standings, rules, selectedSeason }: { matches: 
     };
     const playoffPools = playoffRule?.pools ?? [];
     const last16Pools = last16Rule?.pools ?? [];
+    const actualPlayoffTies = columns.find(column => column.stage === 'PLAYOFFS')?.ties ?? [];
+    const actualLast16Ties = columns.find(column => column.stage === 'LAST_16')?.ties ?? [];
+    const actualQuarterFinalTies = columns.find(column => column.stage === 'QUARTER_FINALS')?.ties ?? [];
+    const actualSemiFinalTies = columns.find(column => column.stage === 'SEMI_FINALS')?.ties ?? [];
+    const actualFinalTies = columns.find(column => column.stage === 'FINAL')?.ties ?? [];
+    const usedLast16Ties = new Set<string>();
     const last16Ties: TieView[] = playoffPools.map((pool, index) => {
       const nextPool = last16Pools[index];
+      const possibleOpponents = poolTeams(nextPool, 0);
+      const actualTie = actualLast16Ties.find(tie =>
+        !usedLast16Ties.has(tie.key)
+        && possibleOpponents.some(team => tie.teams.some(candidate => candidate.id === team.id)),
+      );
+      if (actualTie) usedLast16Ties.add(actualTie.key);
       return {
-        key: `PREDICTED-${nextPool?.id ?? `R16-${index + 1}`}-${index}`,
-        legs: [],
-        teams: [],
-        projectedRows: [
-          { label: '', teams: [], placeholder: true },
-          { label: '', teams: poolTeams(nextPool, 0) },
-        ],
+        ...(actualTie ?? {
+          key: `PREDICTED-${nextPool?.id ?? `R16-${index + 1}`}-${index}`,
+          legs: [],
+          teams: [],
+          projectedRows: [
+            { label: '', teams: [], placeholder: true },
+            { label: '', teams: possibleOpponents },
+          ],
+        }),
       };
     });
     const playoffTies: TieView[] = playoffPools.flatMap((pool, index) => {
       const nextPool = last16Pools[index];
       const nextKey = last16Ties[index].key;
-      return [
-        {
+      const resolvedTeams = pool.results.map(position => positionTeams.get(position)).filter((team): team is Team => Boolean(team));
+      const actualTie = resolvedTeams.length === 2
+        ? actualPlayoffTies.find(tie => tie.teams.length === 2 && resolvedTeams.every(team => tie.teams.some(candidate => candidate.id === team.id)))
+        : undefined;
+      const kpoTie: TieView = actualTie
+        ? { ...actualTie, connectsTo: nextKey }
+        : {
           key: `PREDICTED-${pool.id}-${index}`,
           legs: [],
           teams: [],
@@ -231,7 +256,9 @@ function PlayoffsGrid({ matches, standings, rules, selectedSeason }: { matches: 
             { label: '', teams: poolTeams(pool, 0) },
             { label: '', teams: poolTeams(pool, 1) },
           ],
-        },
+        };
+      return [
+        kpoTie,
         {
           key: `PREDICTED-${nextPool?.id ?? `R16-${index + 1}`}-slot-${index}`,
           legs: [],
@@ -241,36 +268,24 @@ function PlayoffsGrid({ matches, standings, rules, selectedSeason }: { matches: 
         },
       ];
     });
-    const quarterFinalTies: TieView[] = Array.from({ length: 4 }, (_, index) => ({
-      key: `PREDICTED-QF-${index + 1}`,
+    const makeProjectedTie = (key: string): TieView => ({
+      key,
       legs: [],
       teams: [],
       projectedRows: [
         { label: '', teams: [], placeholder: true },
         { label: '', teams: [], placeholder: true },
       ],
-    }));
-    const semiFinalTies: TieView[] = Array.from({ length: 2 }, (_, index) => ({
-      key: `PREDICTED-SF-${index + 1}`,
-      legs: [],
-      teams: [],
-      projectedRows: [
-        { label: '', teams: [], placeholder: true },
-        { label: '', teams: [], placeholder: true },
-      ],
-    }));
-    const finalTie: TieView[] = [{
-      key: 'PREDICTED-FINAL-1',
-      legs: [],
-      teams: [],
-      projectedRows: [
-        { label: '', teams: [], placeholder: true },
-        { label: '', teams: [], placeholder: true },
-      ],
-    }];
-    last16Ties.forEach((tie, index) => { tie.connectsTo = quarterFinalTies[Math.floor(index / 2)].key; });
-    quarterFinalTies.forEach((tie, index) => { tie.connectsTo = semiFinalTies[Math.floor(index / 2)].key; });
-    semiFinalTies.forEach(tie => { tie.connectsTo = finalTie[0].key; });
+    });
+    const quarterFinalTies = Array.from({ length: 4 }, (_, index) => actualQuarterFinalTies[index] ?? makeProjectedTie(`PREDICTED-QF-${index + 1}`));
+    const semiFinalTies = Array.from({ length: 2 }, (_, index) => actualSemiFinalTies[index] ?? makeProjectedTie(`PREDICTED-SF-${index + 1}`));
+    const finalTie = [actualFinalTies[0] ?? makeProjectedTie('PREDICTED-FINAL-1')];
+    const connectToNextRound = (tie: TieView, candidates: TieView[], fallback: TieView) => {
+      tie.connectsTo = candidates.find(candidate => tie.teams.some(team => candidate.teams.some(nextTeam => nextTeam.id === team.id)))?.key ?? fallback.key;
+    };
+    last16Ties.forEach((tie, index) => connectToNextRound(tie, quarterFinalTies, quarterFinalTies[Math.floor(index / 2)]));
+    quarterFinalTies.forEach((tie, index) => connectToNextRound(tie, semiFinalTies, semiFinalTies[Math.floor(index / 2)]));
+    semiFinalTies.forEach(tie => connectToNextRound(tie, finalTie, finalTie[0]));
     columns.splice(0, columns.length,
       ...(playoffTies.length ? [{ stage: 'PLAYOFFS', ties: playoffTies }] : []),
       ...(last16Ties.length ? [{ stage: 'LAST_16', ties: last16Ties }] : []),
