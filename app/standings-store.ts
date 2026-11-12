@@ -13,7 +13,7 @@ type Snapshot = { data?: Payload; error?: string; loading: boolean; refreshing: 
 const empty: Snapshot = { loading: false, refreshing: false };
 const snapshots = new Map<number, Snapshot>();
 const listeners = new Map<number, Set<() => void>>();
-const requests = new Map<number, Promise<void>>();
+const requests = new Map<number, Promise<Payload | undefined>>();
 
 function snapshot(season: number) { return snapshots.get(season) ?? empty; }
 function notify(season: number) { listeners.get(season)?.forEach(listener => listener()); }
@@ -34,7 +34,7 @@ export function useStandings(season: number, enabled = true) {
   return { ...state, refresh: () => loadStandings(season, true) };
 }
 
-function loadStandings(season: number, force = false): Promise<void> {
+function loadStandings(season: number, force = false): Promise<Payload | undefined> {
   const existing = snapshot(season);
   if (requests.has(season)) return requests.get(season)!;
   if (!force && existing.data) return Promise.resolve();
@@ -47,9 +47,11 @@ function loadStandings(season: number, force = false): Promise<void> {
       const body = await response.json();
       if (!response.ok) throw new Error(body.error ?? 'Не удалось загрузить данные.');
       snapshots.set(season, { data: body as Payload, loading: false, refreshing: false });
+      return body as Payload;
     })
     .catch(error => {
       snapshots.set(season, { ...snapshot(season), error: error instanceof Error ? error.message : 'Не удалось загрузить данные.', loading: false, refreshing: false });
+      return undefined;
     })
     .finally(() => { requests.delete(season); notify(season); });
 

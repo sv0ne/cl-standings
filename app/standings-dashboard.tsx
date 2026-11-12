@@ -14,6 +14,17 @@ export default function StandingsDashboard({ section, sections, selectedSeason, 
   const { data: payload, error, loading, refreshing, refresh } = useStandings(selectedSeason, true);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [tableMode, setTableMode] = useState<'league' | 'playoffs'>('league');
+  const isCurrentSeason = selectedSeason === currentSeason;
+
+  const refreshCurrentSeason = async () => {
+    const refreshed = await refresh();
+    if (!refreshed?.dataUpdatedAt) return;
+
+    const responseIsOlderThanOneMinute = Date.now() - new Date(refreshed.dataUpdatedAt).getTime() > 60_000;
+    if (responseIsOlderThanOneMinute) {
+      window.setTimeout(() => void refresh(), 10_000);
+    }
+  };
 
   useEffect(() => { document.documentElement.dataset.theme = theme; }, [theme]);
 
@@ -60,11 +71,11 @@ export default function StandingsDashboard({ section, sections, selectedSeason, 
           <div className="eyebrow muted">ЛИГА ЧЕМПИОНОВ · СЕЗОН {selectedSeason}/{selectedSeason + 1}</div>
           <h1>{sections[section].title}</h1>
           <p className="section-description">{sections[section].description}</p>
-          <div className="data-status-row">
+          {isCurrentSeason && <div className="data-status-row">
             <span>Актуальность данных: {payload?.dataUpdatedAt ? new Date(payload.dataUpdatedAt).toLocaleString('ru-RU') : loading ? 'загрузка…' : 'нет данных'}</span>
-            <button type="button" onClick={() => void refresh()}
+            <button type="button" onClick={() => void refreshCurrentSeason()}
                     disabled={refreshing || loading}>{refreshing ? 'Обновляем…' : 'Обновить'}</button>
-          </div>
+          </div>}
         </div>
       </div>
       {section === 'news' && <div className="news-empty"><h2>Новости скоро появятся</h2><p>Здесь будут публиковаться новости и материалы о Лиге чемпионов.</p></div>}
