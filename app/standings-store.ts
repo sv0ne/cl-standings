@@ -37,7 +37,7 @@ export function useStandings(season: number, enabled = true) {
 function loadStandings(season: number, force = false): Promise<Payload | undefined> {
   const existing = snapshot(season);
   if (requests.has(season)) return requests.get(season)!;
-  if (!force && existing.data) return Promise.resolve();
+  if (!force && existing.data) Promise.resolve(existing.data);
 
   snapshots.set(season, { ...existing, error: undefined, loading: !existing.data, refreshing: Boolean(existing.data) });
   notify(season);
