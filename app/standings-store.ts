@@ -42,7 +42,7 @@ function loadStandings(season: number, force = false): Promise<Payload | undefin
   snapshots.set(season, { ...existing, error: undefined, loading: !existing.data, refreshing: Boolean(existing.data) });
   notify(season);
 
-  const request = fetch(`/api/standings?season=${season}`)
+  const request = fetch(`/api/standings-old?season=${season}`)
     .then(async response => {
       const body = await response.json();
       if (!response.ok) throw new Error(body.error ?? 'Не удалось загрузить данные.');
